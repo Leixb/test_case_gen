@@ -10,18 +10,20 @@ enum PARSER_ERROR {
     UNEXPECTED_END_OF_FILE,
     DEF_NOT_CLOSED,
     INTERVAL_NOT_CLOSED,
+    INVALID_RANGE
 };
 
 map <string, int> ASSIGNED_VALUES;
 
 int string_to_int(const string& s) {
-    if (s[0] >= '0' and s[0] <= '9') return stoi(s);
+    if (s[0] == '-' or (s[0] >= '0' and s[0] <= '9')) return stoi(s);
     if (ASSIGNED_VALUES.find(s) != ASSIGNED_VALUES.end()) return ASSIGNED_VALUES[s];
     cerr << "ERROR: " << s << " is not declared" << endl;
     throw UNDECLARED_VARIABLE;
 }
 
 int random_interval(int a, int b) {
+    if (a > b) throw INVALID_RANGE;
     return a + (rand()%(b - a + 1));
 }
 
@@ -157,7 +159,10 @@ Parser* read_parser() {
 }
 
 int main () {
+
+    // Random device seed
     srand(time(NULL));
+
     try {
 
         for (;;) {
@@ -167,6 +172,6 @@ int main () {
         }
     } catch (PARSER_ERROR e) {
         if (e == END_OF_FILE) return 0;
-        throw e;
+        throw e; // TODO
     }
 }
