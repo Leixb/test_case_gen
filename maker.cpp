@@ -1,16 +1,53 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <exception>
+#include <cstdio>
 using namespace std;
 
-enum PARSER_ERROR {
-    UNEXPECTED_CHAR=1,
-    END_OF_FILE,
-    UNDECLARED_VARIABLE,
-    UNEXPECTED_END_OF_FILE,
-    DEF_NOT_CLOSED,
-    INTERVAL_NOT_CLOSED,
-    INVALID_RANGE
+class end_of_file : public exception {
+    const char* what() const noexcept {
+        return "Reached end of file";
+    }
+};
+
+class unexpected_char : public exception {
+    char expected, c;
+
+    public:
+
+    unexpected_char(const char& expected, const char& c): expected(expected), c(c) { }
+
+    const char* what() const noexcept {
+        return "Unexpected character";
+    }
+};
+
+class undeclared_variable : public exception {
+
+    string variable;
+
+    public:
+
+    undeclared_variable(const string& variable): variable(variable) {}
+
+    const char* what() const noexcept {
+        return "Undeclared variable";
+    }
+};
+
+template<typename T>
+class invalid_range : public exception {
+    T lo, hi;
+
+    public:
+
+    invalid_range(const T& lo, const T& hi): lo(lo), hi(hi) {}
+
+    const char* what() const noexcept {
+        return "Invalid range";
+    }
+
 };
 
 map <string, int> ASSIGNED_VALUES;
@@ -19,11 +56,12 @@ int string_to_int(const string& s) {
     if (s[0] == '-' or (s[0] >= '0' and s[0] <= '9')) return stoi(s);
     if (ASSIGNED_VALUES.find(s) != ASSIGNED_VALUES.end()) return ASSIGNED_VALUES[s];
     cerr << "ERROR: " << s << " is not declared" << endl;
-    throw UNDECLARED_VARIABLE;
+    throw undeclared_variable(s);
 }
 
-int random_interval(int a, int b) {
-    if (a > b) throw INVALID_RANGE;
+template<typename T>
+T random_interval(T a, T b) {
+    if (a > b) throw invalid_range<T>(a, b);
     return a + (rand()%(b - a + 1));
 }
 
@@ -52,7 +90,7 @@ class Definition : public Parser {
     void read() {
         char c;
         cin >> name >> c >> low >> hi >> c;
-        if (c != '}') throw DEF_NOT_CLOSED;
+        if (c != '}') throw unexpected_char('}', c);
     }
 
     void generate() {
@@ -71,7 +109,7 @@ class Interval : public Parser {
     void read() {
         char c;
         cin >> repetitons >> c >> low >> hi >> c;
-        if (c != ')') throw INTERVAL_NOT_CLOSED;
+        if (c != ')') throw unexpected_char(')', c);
     }
 
     void generate() {
@@ -92,6 +130,7 @@ class StrConst : public Parser {
     void read() {
         char c;
         while (cin >> noskipws >> c and c != '"') content.push_back(c);
+        if (c != '"') throw end_of_file();
         cin >> skipws;
     }
 
@@ -124,12 +163,9 @@ class Container : public Parser {
                 content.push_back(value);
             } while (cin >> c and c == ',');
 
-        } catch (PARSER_ERROR e) {
-            if (e == END_OF_FILE) throw UNEXPECTED_END_OF_FILE;
-            throw e;
-        }
+        } catch (const end_of_file& e) { }
 
-        if (c != ']') throw UNEXPECTED_CHAR;
+        if (c != ']') throw unexpected_char(']', c);
 
     }
 
@@ -144,15 +180,17 @@ class Container : public Parser {
 
 Parser* read_parser() {
     char c;
-    if (!(cin >> c)) throw END_OF_FILE;
 
-    Parser* p;
+    Parser* p = NULL;
 
-    if (c == '{') p = new Definition;
-    else if (c == '(') p = new Interval;
-    else if (c == '"') p = new StrConst;
-    else if (c == '[') p = new Container;
-    else throw UNEXPECTED_CHAR;
+    while (p == NULL) {
+        if (!(cin >> c)) throw end_of_file();
+
+        if (c == '{') p = new Definition;
+        else if (c == '(') p = new Interval;
+        else if (c == '"') p = new StrConst;
+        else if (c == '[') p = new Container;
+    }
 
     p->read();
     return p;
@@ -170,8 +208,8 @@ int main () {
             p->generate();
             cout << endl;
         }
-    } catch (PARSER_ERROR e) {
-        if (e == END_OF_FILE) return 0;
-        throw e; // TODO
+
+    } catch (const exception& e) {
+        cerr << e.what() << endl;
     }
 }
