@@ -17,6 +17,8 @@ class end_of_file : public std::exception {
         if (premature) return "Prematurely reached end of file";
         return "Reached EOF";
     }
+
+    bool is_premature() const { return premature; }
 };
 
 class unexpected_char : public std::exception {
