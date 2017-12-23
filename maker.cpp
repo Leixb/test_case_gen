@@ -4,8 +4,16 @@
 #include <exception>
 
 class end_of_file : public std::exception {
+    bool premature;
+
+    public:
+
+    end_of_file(bool premature=false): premature(premature) {
+    }
+
     const char* what() const noexcept {
-        return "Reached end of file";
+        if (!premature) return "";
+        return "Reached end of file prematurely";
     }
 };
 
@@ -164,7 +172,9 @@ class Container : public Parser {
                 content.push_back(value);
             } while (in >> c and c == ',');
 
-        } catch (const end_of_file& e) { }
+        } catch (const end_of_file& e) {
+            throw end_of_file(true);
+        }
 
         if (c != ']') throw unexpected_char(']', c);
 
