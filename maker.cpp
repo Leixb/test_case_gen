@@ -19,8 +19,12 @@ int main () {
         cerr << e.what() << endl
             << "Expected '" << e.expect()
             << "' but got '" << e.got() << '\'' << endl;
+    } catch (const end_of_file& e) {
+        if (e.is_premature()) cerr << e.what() << endl;
+    } catch (const invalid_range<int>& e) {
+        cerr << e.what() << endl
+            << e.low() << " is bigger than " << e.high() << endl;
     } catch (const exception& e) {
         cerr << e.what() << endl;
     }
-
 }
