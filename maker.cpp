@@ -2,16 +2,14 @@
 #include <vector>
 #include <map>
 #include <exception>
-#include <cstdio>
-using namespace std;
 
-class end_of_file : public exception {
+class end_of_file : public std::exception {
     const char* what() const noexcept {
         return "Reached end of file";
     }
 };
 
-class unexpected_char : public exception {
+class unexpected_char : public std::exception {
     char expected, c;
 
     public:
@@ -21,15 +19,18 @@ class unexpected_char : public exception {
     const char* what() const noexcept {
         return "Unexpected character";
     }
+
+    char expect() const { return expected; }
+    char got() const { return c; }
 };
 
-class undeclared_variable : public exception {
+class undeclared_variable : public std::exception {
 
-    string variable;
+    std::string variable;
 
     public:
 
-    undeclared_variable(const string& variable): variable(variable) {}
+    undeclared_variable(const std::string& variable): variable(variable) {}
 
     const char* what() const noexcept {
         return "Undeclared variable";
@@ -37,7 +38,7 @@ class undeclared_variable : public exception {
 };
 
 template<typename T>
-class invalid_range : public exception {
+class invalid_range : public std::exception {
     T lo, hi;
 
     public:
@@ -50,12 +51,11 @@ class invalid_range : public exception {
 
 };
 
-map <string, int> ASSIGNED_VALUES;
+std::map <std::string, int> ASSIGNED_VALUES;
 
-int string_to_int(const string& s) {
+int string_to_int(const std::string& s) {
     if (s[0] == '-' or (s[0] >= '0' and s[0] <= '9')) return stoi(s);
     if (ASSIGNED_VALUES.find(s) != ASSIGNED_VALUES.end()) return ASSIGNED_VALUES[s];
-    cerr << "ERROR: " << s << " is not declared" << endl;
     throw undeclared_variable(s);
 }
 
@@ -65,7 +65,7 @@ T random_interval(T a, T b) {
     return a + (rand()%(b - a + 1));
 }
 
-int random_interval(const string& a, const string& b) {
+int random_interval(const std::string& a, const std::string& b) {
     return random_interval(
             string_to_int(a),
             string_to_int(b)
@@ -74,47 +74,48 @@ int random_interval(const string& a, const string& b) {
 
 class Parser {
     public:
-        virtual void read() = 0;
-        virtual void generate() = 0;
+        virtual void read(std::istream&) = 0;
+        virtual void generate(std::ostream&) = 0;
 };
 
 // { name | a b }
 class Definition : public Parser {
-    string name;
-    string low, hi;
+    std::string name;
+    std::string low, hi;
 
     int current;
 
     public:
 
-    void read() {
+    void read(std::istream& in) {
         char c;
-        cin >> name >> c >> low >> hi >> c;
+        in >> name >> c >> low >> hi >> c;
         if (c != '}') throw unexpected_char('}', c);
     }
 
-    void generate() {
+    void generate(std::ostream& out) {
         ASSIGNED_VALUES[name] = current = random_interval(low, hi);
-        if (name[0] != '_') cout << current << ' ';
+        if (name[0] != '_') out << current << ' ';
     }
 };
 
 // ( repetitons | a b )
 class Interval : public Parser {
 
-    string repetitons, low, hi;
+    std::string repetitons, low, hi;
 
     public:
 
-    void read() {
+    void read(std::istream& in) {
         char c;
-        cin >> repetitons >> c >> low >> hi >> c;
+        in >> repetitons >> c >> low >> hi >> c;
         if (c != ')') throw unexpected_char(')', c);
     }
 
-    void generate() {
+    void generate(std::ostream& out) {
         for (int i = 0; i < string_to_int(repetitons); ++i) {
-            cout << random_interval(low, hi) << ' ';
+            if (i) out << ' ';
+            out << random_interval(low, hi);
         }
     }
 
@@ -123,45 +124,45 @@ class Interval : public Parser {
 // "s fsd fsd fs fds s"
 class StrConst : public Parser {
 
-    string content;
+    std::string content;
 
     public:
 
-    void read() {
+    void read(std::istream& in) {
         char c;
-        while (cin >> noskipws >> c and c != '"') content.push_back(c);
+        while (in >> std::noskipws >> c and c != '"') content.push_back(c);
         if (c != '"') throw end_of_file();
-        cin >> skipws;
+        in >> std::skipws;
     }
 
-    void generate() {
-        cout << content;
+    void generate(std::ostream& out) {
+        out << content;
     }
 
 };
 
-Parser* read_parser();
+Parser* read_parser(std::istream&);
 
 // [ repetitions | ( ... ), [...] ]
 class Container : public Parser {
 
-    string repetitions;
+    std::string repetitions;
 
-    vector<Parser*> content;
+    std::vector<Parser*> content;
 
     public:
 
-    void read() {
+    void read(std::istream& in) {
         char c;
 
-        cin >> repetitions >> c;
+        std::cin >> repetitions >> c;
 
         try {
 
             do {
-                Parser* value = read_parser();
+                Parser* value = read_parser(in);
                 content.push_back(value);
-            } while (cin >> c and c == ',');
+            } while (in >> c and c == ',');
 
         } catch (const end_of_file& e) { }
 
@@ -169,22 +170,22 @@ class Container : public Parser {
 
     }
 
-    void generate() {
+    void generate(std::ostream& out) {
         for (int i = 0; i < string_to_int(repetitions); ++i) {
-            for (Parser *value : content) value->generate();
-            cout << endl;
+            for (Parser *value : content) value->generate(out);
+            out << std::endl;
         }
     }
 
 };
 
-Parser* read_parser() {
+Parser* read_parser(std::istream& in) {
     char c;
 
     Parser* p = NULL;
 
     while (p == NULL) {
-        if (!(cin >> c)) throw end_of_file();
+        if (!(in >> c)) throw end_of_file();
 
         if (c == '{') p = new Definition;
         else if (c == '(') p = new Interval;
@@ -192,7 +193,7 @@ Parser* read_parser() {
         else if (c == '[') p = new Container;
     }
 
-    p->read();
+    p->read(in);
     return p;
 }
 
@@ -204,12 +205,16 @@ int main () {
     try {
 
         for (;;) {
-            Parser* p = read_parser();
-            p->generate();
-            cout << endl;
+            Parser* p = read_parser(std::cin);
+            p->generate(std::cout);
+            std::cout << std::endl;
         }
 
-    } catch (const exception& e) {
-        cerr << e.what() << endl;
+    } catch (const unexpected_char& e) {
+        std::cerr << e.what() << std::endl
+            << "Expected '" << e.expect()
+            << "' but got '" << e.got() << '\'' << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
     }
 }
