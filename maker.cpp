@@ -1,5 +1,6 @@
 #include <iostream>
 #include "maker.h"
+using namespace std;
 
 int main () {
 
@@ -9,17 +10,17 @@ int main () {
     try {
 
         for (;;) {
-            Parser* p = read_parser(std::cin);
-            p->generate(std::cout);
-            std::cout << std::endl;
+            Parser* p = read_parser(cin);
+            p->generate(cout);
+            cout << endl;
         }
 
     } catch (const unexpected_char& e) {
-        std::cerr << e.what() << std::endl
+        cerr << e.what() << endl
             << "Expected '" << e.expect()
-            << "' but got '" << e.got() << '\'' << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
+            << "' but got '" << e.got() << '\'' << endl;
+    } catch (const exception& e) {
+        cerr << e.what() << endl;
     }
 
 }
