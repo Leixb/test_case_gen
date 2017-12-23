@@ -106,7 +106,7 @@ class Definition : public Parser {
 
     void read(std::istream& in) {
         char c;
-        in >> name >> c >> low >> hi >> c;
+        if(!(in >> name >> c >> low >> hi >> c)) throw end_of_file(true);
         if (c != '}') throw unexpected_char('}', c);
     }
 
@@ -125,7 +125,7 @@ class Interval : public Parser {
 
     void read(std::istream& in) {
         char c;
-        in >> repetitons >> c >> low >> hi >> c;
+        if (!(in >> repetitons >> c >> low >> hi >> c)) throw end_of_file(true);
         if (c != ')') throw unexpected_char(')', c);
     }
 
@@ -148,7 +148,7 @@ class StrConst : public Parser {
     void read(std::istream& in) {
         char c;
         while (in >> std::noskipws >> c and c != '"') content.push_back(c);
-        if (c != '"') throw end_of_file();
+        if (c != '"') throw end_of_file(true);
         in >> std::skipws;
     }
 
@@ -172,7 +172,7 @@ class Container : public Parser {
     void read(std::istream& in) {
         char c;
 
-        std::cin >> repetitions >> c;
+        if (!(in >> repetitions >> c)) throw end_of_file(true);
 
         try {
 
