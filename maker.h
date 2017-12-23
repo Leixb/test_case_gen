@@ -11,12 +11,11 @@ class end_of_file : public std::exception {
 
     public:
 
-    end_of_file(bool premature=false): premature(premature) {
-    }
+    end_of_file(bool premature=false): premature(premature) { }
 
     const char* what() const noexcept {
-        if (!premature) return "";
-        return "Reached end of file prematurely";
+        if (premature) return "Prematurely reached end of file";
+        return "Reached EOF";
     }
 };
 
@@ -46,6 +45,8 @@ class undeclared_variable : public std::exception {
     const char* what() const noexcept {
         return "Undeclared variable";
     }
+
+    std::string name() const { return variable; }
 };
 
 template<typename T>
@@ -59,6 +60,9 @@ class invalid_range : public std::exception {
     const char* what() const noexcept {
         return "Invalid range";
     }
+
+    T low() const { return lo; }
+    T high() const { return hi; }
 
 };
 
