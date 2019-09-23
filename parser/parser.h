@@ -1,5 +1,5 @@
-#ifndef __parser_included__
-#define __parser_included__
+#ifndef __PARSER_H__
+#define __PARSER_H__
 
 #include <iostream>
 #include <vector>
@@ -53,24 +53,25 @@ class undeclared_variable : public std::exception {
     std::string name() const { return variable; }
 };
 
-template<typename T>
 class invalid_range : public std::exception {
-    T lo, hi;
+    int lo, hi;
 
     public:
 
-    invalid_range(const T& lo, const T& hi): lo(lo), hi(hi) {}
+    invalid_range(const int& lo, const int& hi): lo(lo), hi(hi) {}
 
     const char* what() const noexcept {
         return "Invalid range";
     }
 
-    T low() const { return lo; }
-    T high() const { return hi; }
+    int low() const { return lo; }
+    int high() const { return hi; }
 
 };
 
-std::map <std::string, int> ASSIGNED_VALUES;
+namespace {
+    std::map <std::string, int> ASSIGNED_VALUES;
+}
 
 int string_to_int(const std::string& s) {
     if (s[0] == '-' or (s[0] >= '0' and s[0] <= '9')) return stoi(s);
