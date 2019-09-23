@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 #include <exception>
+#include <random>
+#include <chrono>
 
 class end_of_file : public std::exception {
     bool premature;
@@ -76,14 +78,36 @@ int string_to_int(const std::string& s) {
     throw undeclared_variable(s);
 }
 
-template<typename T>
-T random_interval(T a, T b) {
-    if (a > b) throw invalid_range<T>(a, b);
-    return a + (rand()%(b - a + 1));
-}
+class _random_interval {
+
+    static std::default_random_engine rand_engine;
+    static std::uniform_int_distribution<int> dist;
+    static bool seeded;
+
+    public:
+        static int get(const int &a, const int &b) {
+            if (a > b) throw invalid_range(a, b);
+            if (!seeded) seed();
+            _random_interval::dist.param(
+                std::uniform_int_distribution<int>::param_type(a, b)
+            );
+            return dist(rand_engine);
+        }
+
+        static void seed() {
+            rand_engine.seed(std::chrono::system_clock::now().time_since_epoch().count());
+        }
+
+    private:
+        _random_interval() {}
+};
+
+bool _random_interval::seeded = false;
+std::default_random_engine _random_interval::rand_engine;
+std::uniform_int_distribution<int> _random_interval::dist;
 
 int random_interval(const std::string& a, const std::string& b) {
-    return random_interval(
+    return _random_interval::get(
             string_to_int(a),
             string_to_int(b)
             );
